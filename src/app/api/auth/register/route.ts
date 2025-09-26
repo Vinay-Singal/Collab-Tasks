@@ -3,10 +3,16 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "../../../../../lib/db";
 import User from "../../../../../lib/models/User";
 
+interface RegisterRequestBody {
+  username: string;
+  email: string;
+  password: string;
+}
+
 export async function POST(req: Request) {
   try {
     await connectDB();
-    const { username, email, password } = await req.json();
+    const { username, email, password } = (await req.json()) as RegisterRequestBody;
 
     if (!username || !email || !password) {
       return NextResponse.json({ message: "All fields are required" }, { status: 400 });
