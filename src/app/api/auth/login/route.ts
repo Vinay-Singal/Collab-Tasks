@@ -10,17 +10,26 @@ export async function POST(req: Request) {
     const { email, password } = await req.json();
 
     if (!email || !password) {
-      return NextResponse.json({ message: "Email and password are required" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Email and password are required" },
+        { status: 400 }
+      );
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json({ message: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json(
+        { message: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return NextResponse.json({ message: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json(
+        { message: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
     if (!process.env.JWT_SECRET) {
@@ -28,17 +37,19 @@ export async function POST(req: Request) {
     }
 
     // Create JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
-    // Exclude password from response
-    const { password: _password, ...userWithoutPassword } = user.toObject();
+    // Exclude password safely
+    const userObj = user.toObject();
+    delete userObj.password;
 
-    // Optionally set token as httpOnly cookie
-    // const response = NextResponse.json({ message: "Login successful", user: userWithoutPassword });
-    // response.cookies.set("token", token, { httpOnly: true, secure: true, maxAge: 60*60*24 });
-    // return response;
-
-    return NextResponse.json({ message: "Login successful", user: userWithoutPassword, token });
+    return NextResponse.json({
+      message: "Login successful",
+      user: userObj,
+      token,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ message: "Error logging in" }, { status: 500 });
