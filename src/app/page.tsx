@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 
 interface Task {
@@ -7,8 +8,23 @@ interface Task {
   description: string;
 }
 
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+}
+
+interface LoginResponse {
+  user: User;
+  token: string;
+}
+
+interface AISuggestionResponse {
+  suggestions: string[];
+}
+
 export default function Home() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -18,74 +34,76 @@ export default function Home() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerUsername, setRegisterUsername] = useState("");
 
-  // Edit task state
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
 
-  // AI suggestions
-  const [suggestions, setSuggestions] = useState<{ [key: string]: string[] }>({});
-
-  // Auth token
+  const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
   const [token, setToken] = useState<string | null>(null);
 
-  // Fetch tasks
+  // Fetch tasks when user or token changes
   useEffect(() => {
     if (!user || !token) return;
     fetch("/api/tasks", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setTasks(data));
+      .then((res) => res.ok ? res.json() : [])
+      .then((data: Task[]) => setTasks(data))
+      .catch(() => setTasks([]));
   }, [user, token]);
 
   // Login
   const login = async () => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    if (res.ok) {
-      const data = await res.json();
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) throw new Error("Invalid credentials");
+
+      const data: LoginResponse = await res.json();
       setUser(data.user);
       setToken(data.token);
-    } else {
+    } catch (err) {
       alert("Invalid email or password");
     }
   };
 
   // Register
   const register = async () => {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: registerUsername,
-        email: registerEmail,
-        password: registerPassword,
-      }),
-    });
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: registerUsername,
+          email: registerEmail,
+          password: registerPassword,
+        }),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Registration failed");
+      }
+
       alert("Registered successfully. You can now login.");
       setRegisterUsername("");
       setRegisterEmail("");
       setRegisterPassword("");
-    } else {
-      const data = await res.json();
-      alert(data.message || "Registration failed");
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
-  // Logout
   const logout = () => {
     setUser(null);
     setTasks([]);
     setToken(null);
   };
 
-  // Add task
   const addTask = async () => {
     if (!title || !description) return alert("Title and description required");
     if (!token) return alert("Login required");
@@ -96,32 +114,31 @@ export default function Home() {
       body: JSON.stringify({ title, description }),
     });
 
-    if (res.ok) {
-      const newTask = await res.json();
-      setTasks([...tasks, newTask]);
-      setTitle("");
-      setDescription("");
-    }
+    if (!res.ok) return alert("Failed to add task");
+
+    const newTask: Task = await res.json();
+    setTasks([...tasks, newTask]);
+    setTitle("");
+    setDescription("");
   };
 
-  // Delete task
   const deleteTask = async (id: string) => {
     if (!token) return alert("Login required");
+
     await fetch(`/api/tasks/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
+
     setTasks(tasks.filter((task) => task._id !== id));
   };
 
-  // Start edit
   const startEdit = (task: Task) => {
     setEditingTaskId(task._id);
     setEditingTitle(task.title);
     setEditingDescription(task.description);
   };
 
-  // Update task
   const updateTask = async () => {
     if (!editingTaskId) return;
     if (!editingTitle || !editingDescription) return alert("Title and description required");
@@ -133,18 +150,15 @@ export default function Home() {
       body: JSON.stringify({ title: editingTitle, description: editingDescription }),
     });
 
-    if (res.ok) {
-      const updatedTask = await res.json();
-      setTasks(tasks.map((t) => (t._id === editingTaskId ? updatedTask : t)));
-      setEditingTaskId(null);
-      setEditingTitle("");
-      setEditingDescription("");
-    } else {
-      alert("Failed to update task");
-    }
+    if (!res.ok) return alert("Failed to update task");
+
+    const updatedTask: Task = await res.json();
+    setTasks(tasks.map((t) => (t._id === editingTaskId ? updatedTask : t)));
+    setEditingTaskId(null);
+    setEditingTitle("");
+    setEditingDescription("");
   };
 
-  // Fetch AI suggestions
   const fetchSuggestions = async (task: Task) => {
     if (!token) return alert("Login required");
 
@@ -154,12 +168,10 @@ export default function Home() {
       body: JSON.stringify({ title: task.title, description: task.description }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      setSuggestions((prev) => ({ ...prev, [task._id]: data.suggestions }));
-    } else {
-      alert("Failed to fetch AI suggestions");
-    }
+    if (!res.ok) return alert("Failed to fetch AI suggestions");
+
+    const data: AISuggestionResponse = await res.json();
+    setSuggestions((prev) => ({ ...prev, [task._id]: data.suggestions }));
   };
 
   return (
@@ -300,7 +312,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* AI suggestions */}
                 {suggestions[task._id] && (
                   <ul className="ml-2 mt-1 list-disc text-gray-700">
                     {suggestions[task._id].map((s, idx) => (
