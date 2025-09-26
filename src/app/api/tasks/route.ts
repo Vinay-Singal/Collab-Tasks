@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "../../../../../lib/db"; // 5 levels from src/app/api/tasks/route.ts to root
-import Task from "../../../../../lib/models/Task";
+import { connectDB } from "./db"; // 5 levels from src/app/api/tasks/route.ts to root
+import Task from "./Task";
 
 import jwt from "jsonwebtoken";
 
