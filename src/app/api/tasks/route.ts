@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "../../../../lib/db";
-import Task from "../../../../lib/models/Task";
+import { connectDB } from "@/lib/db";
+import Task from "@/lib/models/Task";
+
 import jwt from "jsonwebtoken";
 
 async function getUserIdFromToken(req: Request) {
