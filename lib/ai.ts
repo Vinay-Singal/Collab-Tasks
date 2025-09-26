@@ -5,6 +5,14 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+interface ChatCompletionResponse {
+  choices: { message: { content: string } }[];
+}
+
+/**
+ * Ask the model to return 3-5 short suggestion lines for a task.
+ * Returns an array of suggestion strings.
+ */
 export async function getTaskSuggestions(title: string, description: string): Promise<string[]> {
   const safeTitle = (title || "").trim().slice(0, 300);
   const safeDesc = (description || "").trim().slice(0, 1200);
@@ -25,7 +33,7 @@ export async function getTaskSuggestions(title: string, description: string): Pr
     `Title: ${safeTitle}`,
     `Description: ${safeDesc}`,
     ``,
-    `Return only the suggestions as bullet lines or numbered lines.`
+    `Return only the suggestions as bullet lines or numbered lines.`,
   ].join("\n");
 
   try {
@@ -35,13 +43,13 @@ export async function getTaskSuggestions(title: string, description: string): Pr
       temperature: 0.6,
       max_tokens: 200,
       n: 1,
-    });
+    }) as ChatCompletionResponse;
 
     const raw = response.choices?.[0]?.message?.content || "";
 
     const lines = raw
       .split(/\r?\n/)
-      .map(l => l.replace(/^[\-\*\d\.\)\s]+/, "").trim())
+      .map((l) => l.replace(/^[\-\*\d\.\)\s]+/, "").trim())
       .filter(Boolean)
       .slice(0, 5);
 
