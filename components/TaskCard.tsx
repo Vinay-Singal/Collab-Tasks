@@ -2,18 +2,36 @@
 
 import { useState } from "react";
 
-export default function TaskCard({ task }: { task: any }) {
+interface Task {
+  _id: string;
+  title: string;
+  description: string;
+  user?: string;
+}
+
+interface TaskCardProps {
+  task: Task;
+}
+
+export default function TaskCard({ task }: TaskCardProps) {
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
 
   const getAISuggestion = async () => {
-    const res = await fetch("/api/ai/suggest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: task.description }),
-    });
+    try {
+      const res = await fetch("/api/tasks/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: task.title, description: task.description }),
+      });
 
-    const data = await res.json();
-    setAiSuggestion(data.suggestion);
+      const data: { suggestions?: string[] } = await res.json();
+      if (data.suggestions && data.suggestions.length > 0) {
+        setAiSuggestion(data.suggestions[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching AI suggestion:", error);
+      setAiSuggestion("Failed to fetch AI suggestion.");
+    }
   };
 
   return (
