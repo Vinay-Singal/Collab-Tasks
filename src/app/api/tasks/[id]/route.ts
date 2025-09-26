@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "../../../../lib/db";
-import Task from "../../../../lib/models/Task";
+import { connectDB } from "./db";
+import Task from "./Task";
 import jwt from "jsonwebtoken";
 
 // Helper to get userId from JWT
