@@ -13,7 +13,8 @@ async function getUserIdFromToken(req: Request) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
     return decoded.id;
-  } catch (err) {
+  } catch (err: unknown) {
+    if (err instanceof Error) console.error("JWT Error:", err.message);
     return null;
   }
 }
@@ -27,8 +28,9 @@ export async function GET(req: Request) {
 
     const tasks = await Task.find({ user: userId });
     return NextResponse.json(tasks);
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    if (err instanceof Error) console.error(err.message);
+    else console.error(err);
     return NextResponse.json({ message: "Error fetching tasks" }, { status: 500 });
   }
 }
@@ -43,8 +45,9 @@ export async function POST(req: Request) {
     const { title, description } = await req.json();
     const newTask = await Task.create({ title, description, user: userId });
     return NextResponse.json(newTask);
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    if (err instanceof Error) console.error(err.message);
+    else console.error(err);
     return NextResponse.json({ message: "Error creating task" }, { status: 500 });
   }
 }
