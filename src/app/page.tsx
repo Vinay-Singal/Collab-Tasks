@@ -47,9 +47,12 @@ export default function Home() {
     fetch("/api/tasks", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.ok ? res.json() : [])
+      .then((res) => (res.ok ? res.json() : []))
       .then((data: Task[]) => setTasks(data))
-      .catch(() => setTasks([]));
+      .catch((err: unknown) => {
+        console.error(err);
+        setTasks([]);
+      });
   }, [user, token]);
 
   // Login
@@ -66,8 +69,9 @@ export default function Home() {
       const data: LoginResponse = await res.json();
       setUser(data.user);
       setToken(data.token);
-    } catch (err) {
-      alert("Invalid email or password");
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message);
+      else alert("Invalid email or password");
     }
   };
 
@@ -93,8 +97,9 @@ export default function Home() {
       setRegisterUsername("");
       setRegisterEmail("");
       setRegisterPassword("");
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message);
+      else alert("Error registering user");
     }
   };
 
@@ -108,29 +113,41 @@ export default function Home() {
     if (!title || !description) return alert("Title and description required");
     if (!token) return alert("Login required");
 
-    const res = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ title, description }),
-    });
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title, description }),
+      });
 
-    if (!res.ok) return alert("Failed to add task");
+      if (!res.ok) throw new Error("Failed to add task");
 
-    const newTask: Task = await res.json();
-    setTasks([...tasks, newTask]);
-    setTitle("");
-    setDescription("");
+      const newTask: Task = await res.json();
+      setTasks([...tasks, newTask]);
+      setTitle("");
+      setDescription("");
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message);
+      else alert("Failed to add task");
+    }
   };
 
   const deleteTask = async (id: string) => {
     if (!token) return alert("Login required");
 
-    await fetch(`/api/tasks/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    setTasks(tasks.filter((task) => task._id !== id));
+      if (!res.ok) throw new Error("Failed to delete task");
+
+      setTasks(tasks.filter((task) => task._id !== id));
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message);
+      else alert("Failed to delete task");
+    }
   };
 
   const startEdit = (task: Task) => {
@@ -144,34 +161,44 @@ export default function Home() {
     if (!editingTitle || !editingDescription) return alert("Title and description required");
     if (!token) return alert("Login required");
 
-    const res = await fetch(`/api/tasks/${editingTaskId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ title: editingTitle, description: editingDescription }),
-    });
+    try {
+      const res = await fetch(`/api/tasks/${editingTaskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title: editingTitle, description: editingDescription }),
+      });
 
-    if (!res.ok) return alert("Failed to update task");
+      if (!res.ok) throw new Error("Failed to update task");
 
-    const updatedTask: Task = await res.json();
-    setTasks(tasks.map((t) => (t._id === editingTaskId ? updatedTask : t)));
-    setEditingTaskId(null);
-    setEditingTitle("");
-    setEditingDescription("");
+      const updatedTask: Task = await res.json();
+      setTasks(tasks.map((t) => (t._id === editingTaskId ? updatedTask : t)));
+      setEditingTaskId(null);
+      setEditingTitle("");
+      setEditingDescription("");
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message);
+      else alert("Failed to update task");
+    }
   };
 
   const fetchSuggestions = async (task: Task) => {
     if (!token) return alert("Login required");
 
-    const res = await fetch("/api/tasks/suggest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ title: task.title, description: task.description }),
-    });
+    try {
+      const res = await fetch("/api/tasks/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title: task.title, description: task.description }),
+      });
 
-    if (!res.ok) return alert("Failed to fetch AI suggestions");
+      if (!res.ok) throw new Error("Failed to fetch AI suggestions");
 
-    const data: AISuggestionResponse = await res.json();
-    setSuggestions((prev) => ({ ...prev, [task._id]: data.suggestions }));
+      const data: AISuggestionResponse = await res.json();
+      setSuggestions((prev) => ({ ...prev, [task._id]: data.suggestions }));
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message);
+      else alert("Failed to fetch AI suggestions");
+    }
   };
 
   return (
