@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "../../../lib/db";
-import Project from "../../../lib/models/Project";
+import { connectDB } from "@/lib/db";
+import Project from "@/lib/models/Project";
 import jwt from "jsonwebtoken";
 
 async function getUserIdFromToken(req: Request) {
@@ -49,3 +49,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Error creating project" }, { status: 500 });
   }
 }
+
