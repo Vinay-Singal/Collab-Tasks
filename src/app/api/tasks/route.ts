@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Task from "@/lib/models/Task";
+import { connectDB } from "../../../../../lib/db";
+import User from "../../../../../lib/models/User";
 
 import jwt from "jsonwebtoken";
 
