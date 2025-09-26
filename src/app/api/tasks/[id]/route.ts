@@ -9,6 +9,11 @@ interface DecodedToken {
   exp?: number;
 }
 
+interface UpdateTaskBody {
+  title?: string;
+  description?: string;
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -18,24 +23,29 @@ export async function PUT(
     const { id } = params;
 
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!authHeader)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
     const userId = decoded.id;
 
-    const { title, description } = await req.json();
+    const { title, description } = (await req.json()) as UpdateTaskBody;
     const task: ITask | null = await Task.findOneAndUpdate(
       { _id: id, user: userId },
       { title, description },
       { new: true }
     );
 
-    if (!task) return NextResponse.json({ message: "Task not found" }, { status: 404 });
+    if (!task)
+      return NextResponse.json({ message: "Task not found" }, { status: 404 });
     return NextResponse.json(task);
-  } catch (error: any) {
-    console.error(error.message, error.stack);
-    return NextResponse.json({ message: "Error updating task" }, { status: 500 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { message: "Error updating task" },
+      { status: 500 }
+    );
   }
 }
 
@@ -48,18 +58,26 @@ export async function DELETE(
     const { id } = params;
 
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!authHeader)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
     const userId = decoded.id;
 
-    const deleted: ITask | null = await Task.findOneAndDelete({ _id: id, user: userId });
-    if (!deleted) return NextResponse.json({ message: "Task not found" }, { status: 404 });
+    const deleted: ITask | null = await Task.findOneAndDelete({
+      _id: id,
+      user: userId,
+    });
+    if (!deleted)
+      return NextResponse.json({ message: "Task not found" }, { status: 404 });
 
     return NextResponse.json({ message: "Task deleted" });
-  } catch (error: any) {
-    console.error(error.message, error.stack);
-    return NextResponse.json({ message: "Error deleting task" }, { status: 500 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { message: "Error deleting task" },
+      { status: 500 }
+    );
   }
 }
